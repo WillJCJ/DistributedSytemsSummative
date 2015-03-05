@@ -34,7 +34,7 @@ public class Replica{
         while(true) { 
             connectionSocket = welcomeSocket.accept();
             System.out.println("Accepted connection.  Creating new thread.");
-            Thread thread = new Thread(new ReplicaThread(filePath, connectionSocket));
+            Thread thread = new Thread(new PrimaryReplicaThread(filePath, connectionSocket));
             thread.start();
             System.out.println("Created thread.");
         }

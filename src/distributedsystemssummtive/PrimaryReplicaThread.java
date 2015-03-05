@@ -5,7 +5,7 @@ import java.net.*;
 import java.util.ArrayList;
 import org.json.*;
 
-public class ReplicaThread implements Runnable{
+public class PrimaryReplicaThread implements Runnable{
     
     private String filmFile;
     private String fileVersion;
@@ -16,7 +16,7 @@ public class ReplicaThread implements Runnable{
     private JSONObject movieObj;
     private int sleepAmount = 1000; //Time between checking for new request.
     
-    public ReplicaThread(String inPath, Socket socket){
+    public PrimaryReplicaThread(String inPath, Socket socket){
         System.out.println("New thread running.");
         filmFile = readFile(inPath);
         try{
