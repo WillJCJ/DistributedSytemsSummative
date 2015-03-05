@@ -1,10 +1,7 @@
 package distributedsystemssummtive;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.ArrayList;
 
 public class FrontEnd{
     
@@ -14,7 +11,7 @@ public class FrontEnd{
             create(port);
         }
         catch(Exception e){
-            System.err.println("Error creating middle server. Check port is clear.");
+            System.err.println("Error creating front end server. Check port is clear.");
         }
     }
     public static void create(int port) throws Exception{     
@@ -22,7 +19,7 @@ public class FrontEnd{
         ServerSocket welcomeSocket;
         Socket connectionSocket;
         welcomeSocket = new ServerSocket(port);
-        System.out.println("Middle server created on port: "+port);
+        System.out.println("Front end server created on port: "+port);
         while(true) { 
             connectionSocket = welcomeSocket.accept();
             Thread thread = new Thread(new FrontEndThread(connectionSocket));

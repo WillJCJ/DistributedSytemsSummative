@@ -1,24 +1,33 @@
 package distributedsystemssummtive;
 
 import java.io.*;
-import java.net.Socket;
+import java.net.*;
 import java.util.ArrayList;
+import org.json.*;
 
 public class ReplicaThread implements Runnable{
     
-    private ArrayList<String> filmFile;
+    private String filmFile;
+    private String fileVersion;
     private String request;
-    private BufferedReader inFromMiddle;
-    private DataOutputStream backToMiddle;
+    private BufferedReader inFromFront;
+    private DataOutputStream backToFront;
     private Socket connectionSocket;
+    private JSONObject movieObj;
+    private int sleepAmount = 1000; //Time between checking for new request.
     
     public ReplicaThread(String inPath, Socket socket){
         System.out.println("New thread running.");
         filmFile = readFile(inPath);
+        try{
+            movieObj = new JSONObject(filmFile);
+        } catch (JSONException e) {
+            System.err.println("Could not parse JSON object from file string: "+ e);
+        }
         connectionSocket = socket;
         try{
-            inFromMiddle = new BufferedReader(new InputStreamReader(connectionSocket.getInputStream()));
-            backToMiddle = new DataOutputStream(connectionSocket.getOutputStream());
+            inFromFront = new BufferedReader(new InputStreamReader(connectionSocket.getInputStream()));
+            backToFront = new DataOutputStream(connectionSocket.getOutputStream());
         }
         catch(Exception e){
             System.err.println("Error creating input/output streams: "+e);
@@ -29,64 +38,153 @@ public class ReplicaThread implements Runnable{
     public void run(){
         while(true) {
             try{
-                System.out.println("waiting for input");
-                request = inFromMiddle.readLine();
-                System.out.println("Received '"+request+"' from client.");
-                if(request.toLowerCase().equals("close") || request.toLowerCase().equals("end") || request.toLowerCase().equals("exit")){
-                    connectionSocket.close();
-                    break;
+                request = inFromFront.readLine();
+                if (request == null){
+                    Thread.sleep(sleepAmount); //Waits for a request, checking every 1 second
                 }
                 else{
-                    System.out.println("Finding matching films.");
-                    ArrayList<String> output = findFilm(filmFile);
-                    System.out.println("Sending back: "+output.toString());
-                    backToMiddle.writeBytes(output.toString()+"\n");
+                    System.out.println("Received '"+request+"' from front end server.");
+                    if(request.toLowerCase().equals("close") || request.toLowerCase().equals("end") || request.toLowerCase().equals("exit")){
+                        connectionSocket.close();
+                        break;
+                    }
+                    else{
+                        System.out.println("Finding matching films.");
+                        String output = findFilm();
+                        System.out.println("Sending back: "+output);
+                        backToFront.writeBytes(output+"\n");
+                        System.out.println("Waiting for request from front end.");
+                    }
                 }
             }
             catch(Exception e){
-                System.err.println("Error sending data back to client: "+e);
+                System.err.println("Error sending data back to front end server: "+e);
+                System.err.println("Terminating thread.");
                 break;
             }
         }
     }
     
-    public ArrayList<String> findFilm(ArrayList<String> movieFile){
+    public String findFilm(){
         request = request.toLowerCase();
-        ArrayList<String> info = new ArrayList<String>();
-        String line;
-        String data;
-        for (int i = 0; i < movieFile.size(); i++){
-            line = movieFile.get(i);
-            if(line.length() > 4){
-                if (line.substring(0,5).equals("$FILM")){
-                    if (line.substring(5).toLowerCase().contains(request)){
-                        data = "";
-                        data = data + (movieFile.get(i));
-                        data = data + (movieFile.get(i+1));
-                        data = data + (movieFile.get(i+2)+"$END");
-                        info.add(data);
-                    }
+        String info = "";
+        String title;
+        String url;
+        String desc;
+        JSONArray movieArr = new JSONArray();
+        try {
+            movieArr = movieObj.getJSONArray("Movies");
+        } catch (JSONException e) {
+            System.err.println("Could not retrieve Movie array from file object: "+ e);
+        }
+        JSONObject currentMovie = new JSONObject();
+        for (int i = 0; i < movieArr.length(); i++)
+        {
+            try{
+                currentMovie = movieArr.getJSONObject(i);
+            } catch (JSONException e) {
+                System.err.println("Could not retrieve Movie object from movie array: "+ e);
+            }
+            try{
+                title = currentMovie.getString("Title");
+                if(title.toLowerCase().contains(request)){
+                    url = currentMovie.getString("Url");
+                    desc = currentMovie.getString("Desc");
+                    info = rebuildJSON(title, url, desc);
+                    break;
                 }
+            } catch (JSONException e) {
+                System.err.println("Could not read movie data ("+i+")from movie array: "+ e);
             }
         }
+        String id;
+        if(info.equals("")){
+            info = (searchWeb(request));
+        }
+        System.out.println(info);
         return info;
     }
     
+    /**
+     *
+     * @param title
+     * @param url
+     * @param desc
+     * @return Standard JSON object to add to the ArrayList sent back to front end server
+     */
+    public String rebuildJSON(String title, String url, String desc){
+        String str = ("{\"Title\":\""+title+"\",\"Url\":\""+url+"\",\"Desc\":\""+desc+"\"}");
+        return str;
+    }
     
-    public ArrayList<String> readFile(String path){
-        ArrayList<String> lines;
-        lines = new ArrayList<String>();
+    public String readFile(String path){
+        String lines;
+        lines = "";
         String line;
         try{
             BufferedReader reader = new BufferedReader(new FileReader(path));
             while((line = reader.readLine()) != null){
-                lines.add(line);
+                lines = lines + line;
             }
         }
         catch(Exception e){
-            
+            System.err.println("Error reading file: "+e);
         }
         return lines;
+    }
+    
+    //http://rest.elkstein.org/2008/02/using-rest-in-java.html
+    public static String httpGet(String urlStr) throws IOException {
+        URL url = new URL(urlStr);
+        HttpURLConnection conn =
+        (HttpURLConnection) url.openConnection();
+
+        if (conn.getResponseCode() != 200) {
+            throw new IOException(conn.getResponseMessage());
+        }
+
+        // Buffer the result into a string
+        BufferedReader rd = new BufferedReader(
+            new InputStreamReader(conn.getInputStream()));
+        StringBuilder sb = new StringBuilder();
+        String line;
+        while ((line = rd.readLine()) != null) {
+            sb.append(line);
+        }
+        rd.close();
+
+        conn.disconnect();
+        return sb.toString();
+    }
+    
+    public String searchWeb(String req){
+        String title;
+        String id;
+        String desc;
+        String url;
+        String urlRequest = req.replace(" ", "+");
+        String searchURL = "http://www.omdbapi.com/?t=" + urlRequest + "&y=&plot=short&r=json";
+        String responseJSON = rebuildJSON("No movies found", "", "");
+        try{
+            String omdbResponse = httpGet(searchURL);
+            JSONObject parsedResponse = new JSONObject(omdbResponse);
+            String responseString = parsedResponse.getString("Response");
+            if(responseString.equals("True")){
+                title = parsedResponse.getString("Title");
+                id = parsedResponse.getString("imdbID");
+                desc = parsedResponse.getString("Plot");
+                url = "http://www.imdb.com/title/"+id;
+                responseJSON = rebuildJSON(title, url, desc);
+            }
+            else{
+                throw new JSONException("Parse error, no valid response");
+            }
+        }catch(IOException e){
+            System.err.println("Error searching OMDb for \"" + req + "\": " + e);
+        }catch(JSONException e){
+            System.err.println("Error parsing response from OMDb server: " + e);
+        }
+        return responseJSON;
     }
 }
 

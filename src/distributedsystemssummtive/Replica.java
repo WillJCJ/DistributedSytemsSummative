@@ -10,32 +10,33 @@ public class Replica{
         String serverNum = "";
         try {
             BufferedReader inputs = new BufferedReader(new InputStreamReader(System.in));
-            System.out.println("Please enter the number of this server:");
-            serverNum = inputs.readLine();
+            System.out.println("Please enter the number of this replicas:");
+            serverNum = "1";//inputs.readLine();
         }
         catch (Exception e) {
-            System.err.println("Error reading user input: "+e);
+            System.err.println("Error reading user input: " + e);
         }
         int serverInt = Integer.parseInt(serverNum);
         try{
-            create(18300+serverInt, "/Users/Will/Documents/CS/NetworksSummative/movies"+serverNum+".txt");
+            create(18300+serverInt, "movies.json");
         }
         catch(Exception e){
-            System.out.println("Please enter a valid number");
+            System.out.println("Error creating replica: " +e);
         }
     }
     
-    public static void create(int port, String filePath) throws Exception{     
+    public static void create(int port, String filePath) throws IOException{     
         String request;
         ServerSocket welcomeSocket;
         Socket connectionSocket;
         welcomeSocket = new ServerSocket(port);
-        System.out.println("Server created on port: "+port+".  Waiting for client");
+        System.out.println("Server created on port: "+port+".  Waiting for front end server to connect.");
         while(true) { 
             connectionSocket = welcomeSocket.accept();
             System.out.println("Accepted connection.  Creating new thread.");
             Thread thread = new Thread(new ReplicaThread(filePath, connectionSocket));
             thread.start();
+            System.out.println("Created thread.");
         }
     }
 }

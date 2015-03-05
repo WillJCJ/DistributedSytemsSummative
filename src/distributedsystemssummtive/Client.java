@@ -2,6 +2,7 @@ package distributedsystemssummtive;
 
 import java.io.*;
 import java.net.*;
+import org.json.*;
 
 /**
  *
@@ -14,17 +15,16 @@ public class Client {
         String sentence;
         String received;
         BufferedReader inFromUser;
-        connect("localhost",18300); //Change this line depending on where you're connecting
+        try {
+            connect("localhost", 18300); //Change this line depending on where you're connecting
+        } catch (Exception e) {
+            System.err.println("Error connecting to front end server.  Check that server is running and running on correct port.");
+        }
         inFromUser = new BufferedReader(new InputStreamReader(System.in));
         while(true){
             sentence = inFromUser.readLine();
             received = sendAndReceive(sentence);
-            if(sentence.toLowerCase().equals("close") || sentence.toLowerCase().equals("end") || sentence.toLowerCase().equals("exit")){
-                System.out.println("Closing connection with server.");
-                break;
-            }
-            received = received.replace("NEWLINE", "\n");
-            System.out.print("All results containing your search, '"+sentence+"':\n"+received);
+            System.out.print("Your search, '"+sentence+"', returned:\n"+received);
         }
     }
     
@@ -43,6 +43,22 @@ public class Client {
         System.out.println("Sending '"+sentence+"' to server");
         outToServer.writeBytes(sentence + '\n');
         output = inFromServer.readLine();
-        return (output);
+        return (parseOutput(output));
+    }
+    
+    public static String parseOutput(String FEOutput){
+        String result;
+        String title = "No movies found";
+        String url = "";
+        String desc = "";
+        try{
+            JSONObject jsonOutput = new JSONObject(FEOutput);
+            title = jsonOutput.getString("Title");
+            url = jsonOutput.getString("Url");
+            desc = jsonOutput.getString("Desc");
+        }catch(JSONException e){
+            System.err.println("Error parsing json object returned by server: " + e);
+        }
+        return ("Title: "+title+"\nUrl: "+url+"\nDesc: "+desc);
     }
 }
