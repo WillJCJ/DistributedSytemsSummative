@@ -9,8 +9,8 @@ public class Replica{
         String serverNum = "";
         try {
             BufferedReader inputs = new BufferedReader(new InputStreamReader(System.in));
-            System.out.println("Please enter the number of this replica:");
-            serverNum = "1";//inputs.readLine();
+            System.out.println("Please enter the number of this replica (1 is primary):");
+            serverNum = inputs.readLine();
         }
         catch (Exception e) {
             System.err.println("Error reading user input: " + e);
@@ -33,7 +33,7 @@ public class Replica{
         while(true) { 
             connectionSocket = welcomeSocket.accept();
             System.out.println("Accepted connection.  Creating new thread.");
-            Thread thread = new Thread(new PrimaryReplicaThread(filePath, connectionSocket));
+            Thread thread = new Thread(new ReplicaThread(filePath, connectionSocket));
             thread.start();
             System.out.println("Created thread.");
         }

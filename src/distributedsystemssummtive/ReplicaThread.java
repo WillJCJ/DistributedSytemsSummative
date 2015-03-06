@@ -4,7 +4,7 @@ import java.io.*;
 import java.net.*;
 import org.json.*;
 
-public class PrimaryReplicaThread implements Runnable{
+public class ReplicaThread implements Runnable{
     
     private String filmFile;
     private String filmFilePath;
@@ -16,7 +16,7 @@ public class PrimaryReplicaThread implements Runnable{
     private JSONObject movieObj;
     private int sleepAmount = 1000; //Time between checking for new request.
     
-    public PrimaryReplicaThread(String inPath, Socket socket){
+    public ReplicaThread(String inPath, Socket socket){
         filmFilePath = inPath;
         System.out.println("New thread running.");
         filmFile = readFile(filmFilePath);
@@ -58,8 +58,13 @@ public class PrimaryReplicaThread implements Runnable{
                     }
                 }
             }
-            catch(Exception e){
+            catch(IOException e){
                 System.err.println("Error sending data back to front end server: "+e);
+                System.err.println("Terminating thread.");
+                break;
+            }
+            catch(InterruptedException e){
+                System.err.println("Thread's sleep interupted: "+e);
                 System.err.println("Terminating thread.");
                 break;
             }
@@ -98,7 +103,6 @@ public class PrimaryReplicaThread implements Runnable{
                 System.err.println("Could not read movie data ("+i+")from movie array: "+ e);
             }
         }
-        String id;
         if(info.equals("")){
             info = (searchWeb(request));
         }
@@ -190,7 +194,7 @@ public class PrimaryReplicaThread implements Runnable{
     
     public void writeJSONToFile(String jsonObject){
         PrintWriter writer = null;
-        System.out.println(filmFile.substring((filmFile.length()-3)));
+        filmFile = readFile(filmFilePath); //Have to re-read file in case it has changed since it was last opened.
         if(filmFile.substring((filmFile.length()-3)).equals(",]}")){
             try {
                 String noEnd = filmFile.substring(0,(filmFile.length()-2));
