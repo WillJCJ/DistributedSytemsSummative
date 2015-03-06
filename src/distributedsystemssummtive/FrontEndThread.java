@@ -1,17 +1,11 @@
 package distributedsystemssummtive;
 
-import java.io.BufferedReader;
-import java.io.DataOutputStream;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.net.*;
-import java.util.ArrayList;
 import org.json.*;
 
 public class FrontEndThread implements Runnable{
     private String movieData;
-    private ArrayList<String> results;
     private String request;
     private BufferedReader inFromClient;
     private DataOutputStream outToClient;
@@ -24,7 +18,6 @@ public class FrontEndThread implements Runnable{
     
     public FrontEndThread(Socket socket){
         clientSocket = socket;
-        results = new ArrayList<String> ();
         readServer("server.txt");
         try{
             inFromClient = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
@@ -103,7 +96,6 @@ public class FrontEndThread implements Runnable{
     
     public void readServer(String path){
         String line;
-        
         try{
             BufferedReader reader = new BufferedReader(new FileReader(path));
             String[] parts = new String[2];
@@ -149,5 +141,4 @@ public class FrontEndThread implements Runnable{
         }
         return (output);
     }
-    
 }

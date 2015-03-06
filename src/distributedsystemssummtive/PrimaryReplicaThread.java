@@ -2,12 +2,12 @@ package distributedsystemssummtive;
 
 import java.io.*;
 import java.net.*;
-import java.util.ArrayList;
 import org.json.*;
 
 public class PrimaryReplicaThread implements Runnable{
     
     private String filmFile;
+    private String filmFilePath;
     private String fileVersion;
     private String request;
     private BufferedReader inFromFront;
@@ -17,8 +17,9 @@ public class PrimaryReplicaThread implements Runnable{
     private int sleepAmount = 1000; //Time between checking for new request.
     
     public PrimaryReplicaThread(String inPath, Socket socket){
+        filmFilePath = inPath;
         System.out.println("New thread running.");
-        filmFile = readFile(inPath);
+        filmFile = readFile(filmFilePath);
         try{
             movieObj = new JSONObject(filmFile);
         } catch (JSONException e) {
@@ -49,7 +50,7 @@ public class PrimaryReplicaThread implements Runnable{
                         break;
                     }
                     else{
-                        System.out.println("Finding matching films.");
+                        System.out.println("Finding a matching film.");
                         String output = findFilm();
                         System.out.println("Sending back: "+output);
                         backToFront.writeBytes(output+"\n");
@@ -101,7 +102,6 @@ public class PrimaryReplicaThread implements Runnable{
         if(info.equals("")){
             info = (searchWeb(request));
         }
-        System.out.println(info);
         return info;
     }
     
@@ -113,7 +113,7 @@ public class PrimaryReplicaThread implements Runnable{
      * @return Standard JSON object to add to the ArrayList sent back to front end server
      */
     public String rebuildJSON(String title, String url, String desc){
-        String str = ("{\"Title\":\""+title+"\",\"Url\":\""+url+"\",\"Desc\":\""+desc+"\"}");
+        String str = ("{\"Title\":\""+title.replace("\"", "\\\"")+"\",\"Url\":\""+url.replace("\"", "\\\"")+"\",\"Desc\":\""+desc.replace("\"", "\\\"")+"\"}");
         return str;
     }
     
@@ -175,6 +175,7 @@ public class PrimaryReplicaThread implements Runnable{
                 desc = parsedResponse.getString("Plot");
                 url = "http://www.imdb.com/title/"+id;
                 responseJSON = rebuildJSON(title, url, desc);
+                writeJSONToFile(responseJSON);
             }
             else{
                 throw new JSONException("Parse error, no valid response");
@@ -185,6 +186,30 @@ public class PrimaryReplicaThread implements Runnable{
             System.err.println("Error parsing response from OMDb server: " + e);
         }
         return responseJSON;
+    }
+    
+    public void writeJSONToFile(String jsonObject){
+        PrintWriter writer = null;
+        System.out.println(filmFile.substring((filmFile.length()-3)));
+        if(filmFile.substring((filmFile.length()-3)).equals(",]}")){
+            try {
+                String noEnd = filmFile.substring(0,(filmFile.length()-2));
+                noEnd += jsonObject + ",]}";
+                filmFile = noEnd;
+                writer = new PrintWriter(filmFilePath, "UTF-8");
+                writer.print(filmFile);
+                writer.close();
+            } catch (FileNotFoundException e) {
+                System.err.println("Error, file not found: " + e);
+            } catch (UnsupportedEncodingException e) {
+                System.err.println("Error, unsupported encoding used: " + e);
+            } finally {
+                writer.close();
+            }
+        }
+        else{
+            System.err.println("Could not append OMDb film to film file because file is not in correct format.");
+        }
     }
 }
 

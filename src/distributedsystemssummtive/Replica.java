@@ -2,15 +2,14 @@ package distributedsystemssummtive;
 
 import java.io.*;
 import java.net.*;
-import java.util.ArrayList;
 
 public class Replica{
-   
+   private final static String filmFilePath = "movies.json";
     public static void main(String[] args){
         String serverNum = "";
         try {
             BufferedReader inputs = new BufferedReader(new InputStreamReader(System.in));
-            System.out.println("Please enter the number of this replicas:");
+            System.out.println("Please enter the number of this replica:");
             serverNum = "1";//inputs.readLine();
         }
         catch (Exception e) {
@@ -18,7 +17,7 @@ public class Replica{
         }
         int serverInt = Integer.parseInt(serverNum);
         try{
-            create(18300+serverInt, "movies.json");
+            create(18300+serverInt, filmFilePath);
         }
         catch(Exception e){
             System.out.println("Error creating replica: " +e);

@@ -22,9 +22,10 @@ public class Client {
         }
         inFromUser = new BufferedReader(new InputStreamReader(System.in));
         while(true){
+            System.out.println("Please enter your search: ");
             sentence = inFromUser.readLine();
             received = sendAndReceive(sentence);
-            System.out.print("Your search, '"+sentence+"', returned:\n"+received);
+            System.out.println("Your search, '"+sentence+"', returned:\n"+received);
         }
     }
     
@@ -40,7 +41,7 @@ public class Client {
         BufferedReader inFromServer = 
             new BufferedReader(
                 new InputStreamReader(clientSocket.getInputStream()));
-        System.out.println("Sending '"+sentence+"' to server");
+        //System.out.println("Sending '"+sentence+"' to server");
         outToServer.writeBytes(sentence + '\n');
         output = inFromServer.readLine();
         return (parseOutput(output));
@@ -57,8 +58,8 @@ public class Client {
             url = jsonOutput.getString("Url");
             desc = jsonOutput.getString("Desc");
         }catch(JSONException e){
-            System.err.println("Error parsing json object returned by server: " + e);
+            //System.err.println("Error parsing json object returned by server: " + e);
         }
-        return ("Title: "+title+"\nUrl: "+url+"\nDesc: "+desc);
+        return ("Title: "+title+"\nUrl: "+url+"\nDesc: "+desc+"\n");
     }
 }
