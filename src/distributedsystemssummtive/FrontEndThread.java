@@ -9,14 +9,15 @@ public class FrontEndThread implements Runnable{
     private String request;
     private BufferedReader inFromClient;
     private DataOutputStream outToClient;
-    private DataOutputStream outToReplica;
     private BufferedReader inFromReplica;
+    private DataOutputStream outToReplica;
     private String serverIP;
     private int serverPort;
     private Socket clientSocket;
     private Socket replicaSocket;
     
     public FrontEndThread(Socket socket){
+        movieData = "";
         clientSocket = socket;
         readServer("server.txt");
         try{

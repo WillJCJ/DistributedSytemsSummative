@@ -16,15 +16,17 @@ public class Replica{
             System.err.println("Error reading user input: " + e);
         }
         int serverInt = Integer.parseInt(serverNum);
+        Boolean isPrimary;
+        isPrimary = (serverInt == 1);
         try{
-            create(18300+serverInt, filmFilePath);
+            create(18300+serverInt, filmFilePath, isPrimary);
         }
         catch(Exception e){
             System.out.println("Error creating replica: " +e);
         }
     }
     
-    public static void create(int port, String filePath) throws IOException{     
+    public static void create(int port, String filePath, boolean isPrimary) throws IOException{     
         String request;
         ServerSocket welcomeSocket;
         Socket connectionSocket;
@@ -33,7 +35,7 @@ public class Replica{
         while(true) { 
             connectionSocket = welcomeSocket.accept();
             System.out.println("Accepted connection.  Creating new thread.");
-            Thread thread = new Thread(new ReplicaThread(filePath, connectionSocket));
+            Thread thread = new Thread(new ReplicaThread(filePath, connectionSocket, isPrimary));
             thread.start();
             System.out.println("Created thread.");
         }

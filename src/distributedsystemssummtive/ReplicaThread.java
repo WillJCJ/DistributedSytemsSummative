@@ -6,6 +6,7 @@ import org.json.*;
 
 public class ReplicaThread implements Runnable{
     
+    private Boolean isPrimary;
     private String filmFile;
     private String filmFilePath;
     private String fileVersion;
@@ -16,7 +17,8 @@ public class ReplicaThread implements Runnable{
     private JSONObject movieObj;
     private int sleepAmount = 1000; //Time between checking for new request.
     
-    public ReplicaThread(String inPath, Socket socket){
+    public ReplicaThread(String inPath, Socket socket, Boolean primary){
+        isPrimary = primary;
         filmFilePath = inPath;
         System.out.println("New thread running.");
         filmFile = readFile(filmFilePath);

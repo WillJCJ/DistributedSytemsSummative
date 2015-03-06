@@ -11,20 +11,40 @@ import org.json.*;
 public class Client {
     private static Socket clientSocket;
     
-    public static void main(String[] args) throws Exception{
+    public static void main(String[] args){
         String sentence;
         String received;
         BufferedReader inFromUser;
+        inFromUser = new BufferedReader(new InputStreamReader(System.in));
         try {
             connect("localhost", 18300); //Change this line depending on where you're connecting
         } catch (Exception e) {
-            System.err.println("Error connecting to front end server.  Check that server is running and running on correct port.");
+            System.out.println("Error connecting to front end server.");
+            System.out.println("Press enter to try and connect again.");
+            try{
+                inFromUser.readLine();
+            }
+            catch(IOException ex){
+                System.err.println("Error reading line: " + ex);
+            }
+            main(new String[0]);
         }
-        inFromUser = new BufferedReader(new InputStreamReader(System.in));
         while(true){
+            sentence = "";
+            received = "No results";
             System.out.println("Please enter your search: ");
-            sentence = inFromUser.readLine();
-            received = sendAndReceive(sentence);
+            try{
+                sentence = inFromUser.readLine();
+                }
+            catch(IOException ex){
+                System.err.println("Error reading line: " + ex);
+            }
+            try{
+                received = sendAndReceive(sentence);
+            }
+            catch(Exception e){
+                System.err.println("Error sending sentence to server, no message received: " + e);
+            }
             System.out.println("Your search, '"+sentence+"', returned:\n"+received);
         }
     }
