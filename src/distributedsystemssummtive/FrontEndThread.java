@@ -19,7 +19,7 @@ public class FrontEndThread implements Runnable{
     public FrontEndThread(Socket socket){
         movieData = "";
         clientSocket = socket;
-        readServer("server.txt");
+        readServer("server.txt"); // Simple text file with the IP adrress and port of the primary replica server.
         try{
             inFromClient = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
             outToClient = new DataOutputStream(clientSocket.getOutputStream());
@@ -31,7 +31,7 @@ public class FrontEndThread implements Runnable{
     
     public void run(){
         while (true) {
-            movieData = "Error";
+            movieData = "Error"; //Default is 'Error' so if nothing happens to the string, it is still initialised and doesn't send a null object back
             try {
                 request = inFromClient.readLine();
                 System.out.println("Received '" + request + "' from client.");
@@ -67,7 +67,7 @@ public class FrontEndThread implements Runnable{
             String url;
             String desc;
             String id;
-            JSONObject currentMovie = new JSONObject();
+            JSONObject currentMovie = new JSONObject(); // JSON object received is only ever one movie
             
             try{
                 currentMovie = new JSONObject(movieData);
@@ -94,6 +94,7 @@ public class FrontEndThread implements Runnable{
         }
     }
     
+    // Reads the IP and port of the primary replica server from the text file
     public void readServer(String path){
         String line;
         try{

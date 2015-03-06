@@ -7,7 +7,7 @@ public class FrontEnd{
     
     public static void main(String[] args){
         try{
-            int port = 18300;
+            int port = 18300; // Change depending on what port you want to run the server on
             create(port);
         }
         catch(Exception e){
@@ -22,7 +22,7 @@ public class FrontEnd{
         System.out.println("Front end server created on port: "+port);
         while(true) { 
             connectionSocket = welcomeSocket.accept();
-            Thread thread = new Thread(new FrontEndThread(connectionSocket));
+            Thread thread = new Thread(new FrontEndThread(connectionSocket)); // Pass off any incoming client connections to a thread so the class is free to handle more clients.
             thread.start();
         }
     }

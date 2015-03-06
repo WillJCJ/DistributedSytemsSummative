@@ -2,10 +2,11 @@ package distributedsystemssummtive;
 
 import java.io.*;
 import java.net.*;
+import java.util.ArrayList;
 import org.json.*;
 
 public class ReplicaThread implements Runnable{
-    
+    private ArrayList<String> serverList;
     private Boolean isPrimary;
     private String filmFile;
     private String filmFilePath;
@@ -15,13 +16,18 @@ public class ReplicaThread implements Runnable{
     private DataOutputStream backToFront;
     private Socket connectionSocket;
     private JSONObject movieObj;
+    private String primaryFrontEnd = "primary"; // for print statements, is either primary or front end, depending on isPrimary Boolean
     private int sleepAmount = 1000; //Time between checking for new request.
     
     public ReplicaThread(String inPath, Socket socket, Boolean primary){
         isPrimary = primary;
+        if(isPrimary){
+            primaryFrontEnd = "front end";
+        }
         filmFilePath = inPath;
         System.out.println("New thread running.");
         filmFile = readFile(filmFilePath);
+        serverList = parseServers("servers.txt");
         try{
             movieObj = new JSONObject(filmFile);
         } catch (JSONException e) {
@@ -46,7 +52,7 @@ public class ReplicaThread implements Runnable{
                     Thread.sleep(sleepAmount); //Waits for a request, checking every 1 second
                 }
                 else{
-                    System.out.println("Received '"+request+"' from front end server.");
+                    System.out.println("Received '"+request+"' from "+primaryFrontEnd+" server.");
                     if(request.toLowerCase().equals("close") || request.toLowerCase().equals("end") || request.toLowerCase().equals("exit")){
                         connectionSocket.close();
                         break;
@@ -56,12 +62,12 @@ public class ReplicaThread implements Runnable{
                         String output = findFilm();
                         System.out.println("Sending back: "+output);
                         backToFront.writeBytes(output+"\n");
-                        System.out.println("Waiting for request from front end.");
+                        System.out.println("Waiting for request from "+primaryFrontEnd+" server.");
                     }
                 }
             }
             catch(IOException e){
-                System.err.println("Error sending data back to front end server: "+e);
+                System.err.println("Error sending data back to "+primaryFrontEnd+" server: "+e);
                 System.err.println("Terminating thread.");
                 break;
             }
@@ -71,6 +77,10 @@ public class ReplicaThread implements Runnable{
                 break;
             }
         }
+    }
+    
+    public void togglePrimary(){
+        isPrimary = !isPrimary;
     }
     
     public String findFilm(){
@@ -105,19 +115,41 @@ public class ReplicaThread implements Runnable{
                 System.err.println("Could not read movie data ("+i+")from movie array: "+ e);
             }
         }
-        if(info.equals("")){
-            info = (searchWeb(request));
+        if(info.equals("") && isPrimary){
+            String sIP;
+            int sPort;
+            for (String server : serverList) {
+                String[] parts = server.split(":");
+                sIP = parts[0];
+                sPort = Integer.parseInt(parts[1]);
+                info = connect(sIP, sPort);
+                if(!(info.equals(""))){
+                    writeJSONToFile(info); //Slave server has a movie primary doesn't so primary will write it to their file.
+                    break;
+                }
+            }
+            if(info.equals("")){
+                info = (searchWeb(request));
+            }
         }
         return info;
     }
     
-    /**
-     *
-     * @param title
-     * @param url
-     * @param desc
-     * @return Standard JSON object to add to the ArrayList sent back to front end server
-     */
+    public ArrayList<String> parseServers(String path){
+        ArrayList<String> lines = new ArrayList<String>();
+        String line;
+        try{
+            BufferedReader reader = new BufferedReader(new FileReader(path));
+            while((line = reader.readLine()) != null){
+                lines.add(line);
+            }
+        }
+        catch(Exception e){
+            System.err.println("Error reading file: "+e);
+        }
+        return lines;
+    }
+    
     public String rebuildJSON(String title, String url, String desc){
         String str = ("{\"Title\":\""+title.replace("\"", "\\\"")+"\",\"Url\":\""+url.replace("\"", "\\\"")+"\",\"Desc\":\""+desc.replace("\"", "\\\"")+"\"}");
         return str;
@@ -137,6 +169,25 @@ public class ReplicaThread implements Runnable{
             System.err.println("Error reading file: "+e);
         }
         return lines;
+    }
+    
+    // Only called by primary.  Must communicate with slave server.
+    public String connect(String serverIP, int serverPort){
+        DataOutputStream outToSlave;
+        BufferedReader inFromSlave;
+        String output = "";
+        try {
+            Socket slaveSocket = new Socket(serverIP, serverPort);
+            outToSlave = new DataOutputStream(slaveSocket.getOutputStream());
+            inFromSlave = new BufferedReader(new InputStreamReader(slaveSocket.getInputStream()));
+            outToSlave.writeBytes(request+ '\n');
+            System.out.println("Sent '"+request+"' to slave replica.");
+            output = inFromSlave.readLine();
+            inFromSlave.close();
+        } catch (Exception e) {
+            System.err.println("Error communicating with slave replica: "+e);
+        }
+        return (output);
     }
     
     //http://rest.elkstein.org/2008/02/using-rest-in-java.html
@@ -218,5 +269,3 @@ public class ReplicaThread implements Runnable{
         }
     }
 }
-
-

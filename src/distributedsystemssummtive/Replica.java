@@ -4,7 +4,7 @@ import java.io.*;
 import java.net.*;
 
 public class Replica{
-   private final static String filmFilePath = "movies.json";
+   private final static String filmFilePath = "movies";
     public static void main(String[] args){
         String serverNum = "";
         try {
@@ -19,7 +19,7 @@ public class Replica{
         Boolean isPrimary;
         isPrimary = (serverInt == 1);
         try{
-            create(18300+serverInt, filmFilePath, isPrimary);
+            create(18300+serverInt, filmFilePath+serverInt+".json", isPrimary); //18300+serverInt is a temporary way of assigning ports and would change in a real life implementation.
         }
         catch(Exception e){
             System.out.println("Error creating replica: " +e);
