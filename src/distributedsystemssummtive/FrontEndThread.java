@@ -31,13 +31,14 @@ public class FrontEndThread implements Runnable{
     
     public void run(){
         while (true) {
+            movieData = "Error";
             try {
                 request = inFromClient.readLine();
                 System.out.println("Received '" + request + "' from client.");
             } catch (Exception e) {
                 System.err.println("Error receiving from client: " + e);
             }
-            String resultString = "";
+            String resultString;
             if(request.toLowerCase().equals("quit") || request.toLowerCase().equals("close") || request.toLowerCase().equals("exit")){
                 resultString = "Closing connection.  Thank you for using this service.";
                 try {
@@ -54,8 +55,6 @@ public class FrontEndThread implements Runnable{
                 break; //End the while loop
             }
             try {
-                System.out.println(serverIP);
-                System.out.println(serverPort);
                 replicaSocket = new Socket(serverIP, serverPort);
                 System.out.println("Connected to " + serverIP + ":" + serverPort);
                 movieData = sendAndReceive();
